@@ -529,8 +529,7 @@ moves_loop: // When in check search starts from here.
 
       if (captureOrPromotion) {
         // Increase reduction depending on opponent's stat score
-        if (  (ss-1)->statScore >= 0
-            && (*pos->captureHistory)[movedPiece][to_sq(move)][type_of_p(captured_piece())] < 0)
+        if ((ss-1)->statScore >= 0)
           r += ONE_PLY;
 
         r -= r ? ONE_PLY : DEPTH_ZERO;
