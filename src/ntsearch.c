@@ -14,33 +14,7 @@ Value search_PV(Pos *pos, Stack *ss, Value alpha, Value beta, Depth depth)
 Value search_NonPV(Pos *pos, Stack *ss, Value alpha, Depth depth, int cutNode)
 #endif
 {
-  const int rootNode = PvNode && ss->ply == 0;
-
-  // Check if we have an upcoming move which draws by repetition, or if the
-  // opponent had an alternative move earlier to this position.
-  if (   pos->st->pliesFromNull >= 3
-      && alpha < VALUE_DRAW
-      && !rootNode
-      && has_game_cycle(pos))
-  {
-#if PvNode
-      alpha = VALUE_DRAW;
-      if (alpha >= beta)
-        return alpha;
-#else
-      return VALUE_DRAW;
-#endif
-  }
-
-  // Dive into quiescense search when the depth reaches zero
-  if (depth < ONE_PLY)
-    return  PvNode
-          ?   pos_checkers()
-            ? qsearch_PV_true(pos, ss, alpha, beta, DEPTH_ZERO)
-            : qsearch_PV_false(pos, ss, alpha, beta, DEPTH_ZERO)
-          :   pos_checkers()
-            ? qsearch_NonPV_true(pos, ss, alpha, DEPTH_ZERO)
-            : qsearch_NonPV_false(pos, ss, alpha, DEPTH_ZERO);
+  int rootNode = PvNode && ss->ply == 0;
 
   assert(-VALUE_INFINITE <= alpha && alpha < beta && beta <= VALUE_INFINITE);
   assert(PvNode || (alpha == beta - 1));
@@ -104,6 +78,16 @@ Value search_NonPV(Pos *pos, Stack *ss, Value alpha, Depth depth, int cutNode)
     if (alpha >= mate_in(ss->ply+1))
       return alpha;
 #endif
+
+    if (pos->st->pliesFromNull >= 3 && alpha < VALUE_DRAW && has_game_cycle(pos)) {
+#if PvNode
+      alpha = VALUE_DRAW;
+      if (alpha >= beta)
+        return alpha;
+#else
+      return VALUE_DRAW;
+#endif
+    }
   }
 
   assert(0 <= ss->ply && ss->ply < MAX_PLY);
@@ -283,7 +267,9 @@ Value search_NonPV(Pos *pos, Stack *ss, Value alpha, Depth depth, int cutNode)
 
     do_null_move(pos);
     ss->endMoves = (ss-1)->endMoves;
-    Value nullValue = -search_NonPV(pos, ss+1, -beta, depth-R, !cutNode);
+    Value nullValue =   depth-R < ONE_PLY
+                     ? -qsearch_NonPV_false(pos, ss+1, -beta, DEPTH_ZERO)
+                     : - search_NonPV(pos, ss+1, -beta, depth-R, !cutNode);
     undo_null_move(pos);
 
     if (nullValue >= beta) {
@@ -301,7 +287,9 @@ Value search_NonPV(Pos *pos, Stack *ss, Value alpha, Depth depth, int cutNode)
       pos->nmpPly = ss->ply + 3 * (depth-R) / (4 * ONE_PLY);
       pos->nmpOdd = ss->ply & 1;
 
-      Value v = search_NonPV(pos, ss, beta-1, depth-R, 0);
+      Value v =  depth-R < ONE_PLY
+               ? qsearch_NonPV_false(pos, ss, beta-1, DEPTH_ZERO)
+               : search_NonPV(pos, ss, beta-1, depth-R, 0);
 
       pos->nmpOdd = pos->nmpPly = 0;
 
@@ -541,7 +529,8 @@ moves_loop: // When in check search starts from here.
 
       if (captureOrPromotion) {
         // Increase reduction depending on opponent's stat score
-        if ((ss-1)->statScore >= 0)
+        if (  (ss-1)->statScore >= 0
+            && (*pos->captureHistory)[movedPiece][to_sq(move)][type_of_p(captured_piece())] < 0)
           r += ONE_PLY;
 
         r -= r ? ONE_PLY : DEPTH_ZERO;
@@ -598,7 +587,11 @@ moves_loop: // When in check search starts from here.
 
     // Step 17. Full depth search when LMR is skipped or fails high.
     if (doFullDepthSearch)
-      value = -search_NonPV(pos, ss+1, -(alpha+1), newDepth, !cutNode);
+        value =  newDepth < ONE_PLY
+               ?   givesCheck
+                 ? -qsearch_NonPV_true(pos, ss+1, -(alpha+1), DEPTH_ZERO)
+                 : -qsearch_NonPV_false(pos, ss+1, -(alpha+1), DEPTH_ZERO)
+               : -search_NonPV(pos, ss+1, -(alpha+1), newDepth, !cutNode);
 
     // For PV nodes only, do a full PV search on the first move or after a fail
     // high (in the latter case search only if value < beta), otherwise let the
@@ -609,7 +602,11 @@ moves_loop: // When in check search starts from here.
       (ss+1)->pv = pv;
       (ss+1)->pv[0] = 0;
 
-      value = -search_PV(pos, ss+1, -beta, -alpha, newDepth);
+      value =  newDepth < ONE_PLY
+             ?   givesCheck
+               ? -qsearch_PV_true(pos, ss+1, -beta, -alpha, DEPTH_ZERO)
+               : -qsearch_PV_false(pos, ss+1, -beta, -alpha, DEPTH_ZERO)
+             : -search_PV(pos, ss+1, -beta, -alpha, newDepth);
     }
 
     // Step 18. Undo move
