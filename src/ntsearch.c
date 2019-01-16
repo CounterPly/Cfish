@@ -15,23 +15,6 @@ Value search_NonPV(Pos *pos, Stack *ss, Value alpha, Depth depth, int cutNode)
 #endif
 {
   const int rootNode = PvNode && ss->ply == 0;
-
-  // Check if we have an upcoming move which draws by repetition, or if the
-  // opponent had an alternative move earlier to this position.
-  if (   pos->st->pliesFromNull >= 3
-      && alpha < VALUE_DRAW
-      && !rootNode
-      && has_game_cycle(pos))
-  {
-#if PvNode
-      alpha = VALUE_DRAW;
-      if (alpha >= beta)
-        return alpha;
-#else
-      return VALUE_DRAW;
-#endif
-  }
-
   // Dive into quiescense search when the depth reaches zero
   if (depth < ONE_PLY)
     return  PvNode
@@ -41,6 +24,7 @@ Value search_NonPV(Pos *pos, Stack *ss, Value alpha, Depth depth, int cutNode)
           :   pos_checkers()
             ? qsearch_NonPV_true(pos, ss, alpha, DEPTH_ZERO)
             : qsearch_NonPV_false(pos, ss, alpha, DEPTH_ZERO);
+  int rootNode = PvNode && ss->ply == 0;
 
   assert(-VALUE_INFINITE <= alpha && alpha < beta && beta <= VALUE_INFINITE);
   assert(PvNode || (alpha == beta - 1));
@@ -104,6 +88,16 @@ Value search_NonPV(Pos *pos, Stack *ss, Value alpha, Depth depth, int cutNode)
     if (alpha >= mate_in(ss->ply+1))
       return alpha;
 #endif
+
+    if (pos->st->pliesFromNull >= 3 && alpha < VALUE_DRAW && has_game_cycle(pos)) {
+#if PvNode
+      alpha = VALUE_DRAW;
+      if (alpha >= beta)
+        return alpha;
+#else
+      return VALUE_DRAW;
+#endif
+    }
   }
 
   assert(0 <= ss->ply && ss->ply < MAX_PLY);
