@@ -30,6 +30,7 @@ unsigned bitbases_probe(Square wksq, Square wpsq, Square bksq, unsigned us);
 
 void bitboards_init(void);
 void print_pretty(Bitboard b);
+void fprint_pretty(Bitboard b);
 
 #define AllSquares (~0ULL)
 #define DarkSquares  0xAA55AA55AA55AA55ULL

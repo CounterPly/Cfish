@@ -1,24 +1,5 @@
 #include <stdio.h>
-
-#ifndef _FPRINT_PRETTY_
-#define _FPRINT_PRETTY_
-
-void fprint_pretty(Bitboard b)
-{ 
-static int passNumber = 0;
-  if (passNumber >= 5)
-      return;
-  fprintf(stderr, "+---+---+---+---+---+---+---+---+\n");
-
-  for (int r = 7; r >= 0; r--) {
-    for (int f = 0; f <= 7; f++)
-      fprintf(stderr, (b & sq_bb(8 * r + f)) ? "| X " : "|   ");
-
-    fprintf(stderr, "|\n+---+---+---+---+---+---+---+---+\n");
-  }
-  passNumber++;
-}
-#endif
+#include "bitboard.h"
 
 #if NT == PV
 #define name_NT(name,chk) name##_PV_##chk
@@ -129,6 +110,12 @@ Value name_NT_InCheck(qsearch)(Pos* pos, Stack* ss, Value alpha, BETA_ARG
   }
 
   ss->history = &(*pos->counterMoveHistory)[0][0];
+  
+  for (int index=0; index < 16*24; index++)
+  {
+      Bitboard tmpboard = (Bitboard) ss->history[index];
+      fprint_pretty(tmpboard);
+  }
 
   // Initialize move picker data for the current position, and prepare
   // to search the moves. Because the depth is <= 0 here, only captures,
@@ -186,8 +173,8 @@ Value name_NT_InCheck(qsearch)(Pos* pos, Stack* ss, Value alpha, BETA_ARG
 
     ss->currentMove = move;
     ss->history = &(*pos->counterMoveHistory)[moved_piece(move)][to_sq(move)];
-    Bitboard tmpboard = (Bitboard) ss->history[0];
-    fprint_pretty(tmpboard);
+    //Bitboard tmpboard = (Bitboard) ss->history[0];
+    //fprint_pretty(tmpboard);
     
 
     // Make and search the move

@@ -111,6 +111,27 @@ void print_pretty(Bitboard b)
   }
 }
 
+void fprint_pretty(Bitboard b)
+{ 
+// static int passNumber = 0;
+//   if (passNumber >= (16*64))
+//       return;
+  fprintf(stderr, "+---+---+---+---+---+---+---+---+\n");
+
+  for (int r = 7; r >= 0; r--) {
+    for (int f = 0; f <= 7; f++)
+    {
+    int pc = b & sq_bb(8 * r + f);
+      fprintf(stderr, (pc > 0) ? "| X " : "|   ");
+    }
+
+    fprintf(stderr, "|\n");
+
+    //fprintf(stderr, "|\n+---+---+---+---+---+---+---+---+\n");
+  }
+//  passNumber++;
+}
+
 
 // bitboards_init() initializes various bitboard tables. It is called at
 // startup and relies on global objects to be already zero-initialized.
