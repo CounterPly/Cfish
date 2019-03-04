@@ -121,11 +121,11 @@ void fprint_pretty(Bitboard b)
   for (int r = 7; r >= 0; r--) {
     for (int f = 0; f <= 7; f++)
     {
-    int pc = b & sq_bb(8 * r + f);
+    unsigned long long pc = b & sq_bb(8 * r + f);
       fprintf(stderr, (pc > 0) ? "| X " : "|   ");
     }
 
-    fprintf(stderr, "|\n");
+    fprintf(stderr, "\n");
 
     //fprintf(stderr, "|\n+---+---+---+---+---+---+---+---+\n");
   }

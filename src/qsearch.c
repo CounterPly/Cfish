@@ -111,12 +111,6 @@ Value name_NT_InCheck(qsearch)(Pos* pos, Stack* ss, Value alpha, BETA_ARG
 
   ss->history = &(*pos->counterMoveHistory)[0][0];
   
-  for (int index=0; index < 16*24; index++)
-  {
-      Bitboard tmpboard = (Bitboard) ss->history[index];
-      fprint_pretty(tmpboard);
-  }
-
   // Initialize move picker data for the current position, and prepare
   // to search the moves. Because the depth is <= 0 here, only captures,
   // queen promotions and checks (only if depth >= DEPTH_QS_CHECKS) will
@@ -172,10 +166,39 @@ Value name_NT_InCheck(qsearch)(Pos* pos, Stack* ss, Value alpha, BETA_ARG
     }
 
     ss->currentMove = move;
-    ss->history = &(*pos->counterMoveHistory)[moved_piece(move)][to_sq(move)];
-    //Bitboard tmpboard = (Bitboard) ss->history[0];
-    //fprint_pretty(tmpboard);
+    int mvdPiece = moved_piece(move);
+    int toSquare = to_sq(move);
+    ss->history = &(*pos->counterMoveHistory)[mvdPiece][toSquare];
     
+    {
+    // This block of code if IFDEF'd off, so it doesn't compile. I left it here in case I need to
+    // show the relationship between PieceToHistory and CounterMoveHistoryStat.
+    #ifdef PROOF_OF_SIZEOF_HISTORY_TYPEDEFS
+    static bool hasDisplayed = false; 
+    unsigned int sopth = sizeof(PieceToHistory);
+    unsigned int socmhs = sizeof(CounterMoveHistoryStat);
+    if (!hasDisplayed)
+        {
+        fprintf (stderr, "sopth = %u\n", sopth);
+        fprintf (stderr, "socmhs = %u\n", socmhs);
+        hasDisplayed = true;
+        }
+    #endif
+
+    PieceToHistory* pth = ss->history;
+    
+    for (int pcIndex=0; pcIndex < 1; pcIndex++) // < 16
+       {
+        for (int mvIndex=0; mvIndex < 1; mvIndex++) // < 64
+            {
+            short entry = (*pth)[pcIndex][mvIndex];
+            if (entry > 0)
+                fprintf(stderr, "[%i,%i,%i]\n", pcIndex, mvIndex, entry);
+            else
+                fprintf(stderr, ".");
+            }
+        }
+    }
 
     // Make and search the move
     do_move(pos, move, givesCheck);
