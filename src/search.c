@@ -90,7 +90,7 @@ INLINE Depth reduction(int i, Depth d, int mn, const int NT)
 Value stat_bonus(Depth depth)
 {
   int d = depth / ONE_PLY;
-  return d > 17 ? 0 : d * d + 2 * d - 2;
+  return d > 17 ? 0 : 32 * d * d + 64 * d - 64;
 }
 
 // Skill structure is used to implement strength limit
